@@ -20,7 +20,7 @@ def load_sensor_data(file_path):
         print(f"Error loading data: {e}")
         return None
 
-accelerometer_data = load_sensor_data('hw1/2025-10-12_16-18-03/Accelerometer.csv')
+accelerometer_data = load_sensor_data('hw1/2025-10-12_16-18-03/TotalAcceleration.csv')
 gyroscope_data = load_sensor_data('hw1/2025-10-12_16-18-03/Gyroscope.csv')
 gravity_data = load_sensor_data('hw1/2025-10-12_16-18-03/Gravity.csv')
 
