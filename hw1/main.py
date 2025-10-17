@@ -39,8 +39,8 @@ plt.figure(figsize=(12,6))
 plt.plot(acc['time'], acc['magnitude'], color='black', linewidth=0.8)
 
 segments = [
-    (0, 60, 'Standing'),
-    (60, 120, 'Sitting'),
+    (0, 60, 'Sitting'),
+    (60, 120, 'Standing'),
     (120, 180, 'Walking'),
     (180, 240, 'Running')
 ]
