@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
+from scipy.signal import find_peaks
 
 
 def load_sensor_data(file_path):
@@ -67,3 +68,80 @@ for (start, end, label) in segments:
 features_df = pd.DataFrame(features, columns=["Activity", "Mean Magnitude", "Std Magnitude"])
 print("\n=== Activity Summary Features ===\n")
 print(features_df)
+
+
+# -------------------- PART 2: Step Detection --------------------
+
+def sliding_windows(x, fs, win_sec=3.0, hop_sec=1.0):
+    win = int(round(win_sec * fs))   # window size in samples
+    hop = int(round(hop_sec * fs))   # hop size (how much we slide forward)
+    for start in range(0, max(len(x) - win + 1, 0), hop):
+        yield start, x[start:start+win]
+
+
+# Remove gravity yapacaksak totalacc dosyasından gravity çıkarılacak yoksa acc dosyası kullanılacak şimdilik bu kısmı atlıyorum
+# ama bu kısmı kullanmamız gerekirse de direkt x, y, z leri gravityden çıkartıp döndüreceğiz
+
+def magnitude(ax, ay, az):
+    return np.sqrt(ax*ax + ay*ay + az*az)
+
+
+# calculate lowpass filter but with time domain since it is time series data instead of converting frequency domain and multiplying
+# we can use convolution with the kernel
+def fir_lowpass_kernel(fc_hz, fs, num_taps=101):
+    fc = fc_hz / fs
+    M = num_taps - 1
+    n = np.arange(num_taps)
+    h = np.sinc(2*fc*(n - M/2))
+    w = 0.54 - 0.46*np.cos(2*np.pi*n/M)   # Hamming window
+    h *= w
+    h /= np.sum(h)
+    return h
+
+def lowpass_fir(x, fs, fc_hz=3.0, num_taps=101):
+    h = fir_lowpass_kernel(fc_hz, fs, num_taps)
+    pad = len(h)//2
+    xpad = np.pad(x, (pad, pad), mode='reflect')
+    ypad = np.convolve(xpad, h, mode='same')
+    return ypad[pad:-pad]
+
+# helper for peak detection threshold
+def robust_threshold(x, k=1.0):
+    # median + k * MAD (median absolute deviation); MAD ~ robust spread
+    med = np.median(x)
+    mad = np.median(np.abs(x - med)) + 1e-12
+    return med + k * mad
+
+
+def count_steps_streaming(ax, ay, az, fs, win_sec=3.0, hop_sec=1.0):
+    #lax, lay, laz = remove_gravity(ax, ay, az, fs, ma_sec=0.8)  # or highpass(...)
+    mag = magnitude(ax, ay, az)
+    mag_f = lowpass_fir(mag, fs, fc=3.0, order=2)
+
+    step_times = []  # collect timestamps of accepted peaks
+    min_dist_samples = int(fs / 3.0)  # ~max 3 Hz cadence
+    for start, seg in sliding_windows(mag_f, win_sec, hop_sec, fs):
+        seg_t = t[start:start+len(seg)]
+        # Adaptive threshold per window:
+        thr = robust_threshold(seg, k=1.0)
+        pks, _ = find_peaks(seg, distance=min_dist_samples, height=thr)
+
+        # Convert local indices to global times
+        for pk in pks:
+            step_times.append(seg_t[pk])
+
+    # Optional: non-maximum suppression across the whole list
+    step_times = np.array(sorted(step_times))
+    # Enforce global min spacing again (helps de-duplicate overlap)
+    min_dt = 1.0 / 3.0  # seconds (≈ 3 Hz)
+    dedup = [step_times[0]] if len(step_times) else []
+    for s in step_times[1:]:
+        if s - dedup[-1] >= min_dt:
+            dedup.append(s)
+    return np.array(dedup)
+
+# ax, ay, az from accelerometer data take them from file
+step_times = count_steps_streaming(ax, ay, az, fs, win_sec=3.0, hop_sec=1.0)
+step_count = len(step_times)
+
+
