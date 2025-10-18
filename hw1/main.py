@@ -78,12 +78,47 @@ print(features_df)
 
 # -------------------- PART 2: Step Detection --------------------
 
+gravity_x = gravity_data['x'].values
+gravity_y = gravity_data['y'].values
+gravity_z = gravity_data['z'].values
+gravity_times = gravity_data['time'].values
+
+accelerometer_times = accelerometer_data['time'].values
+fs = int(round(1.0 / np.median(np.diff(accelerometer_times))))
+
+
 def sliding_windows(x, fs, win_sec=3.0, hop_sec=1.0):
     win = int(round(win_sec * fs))   # window size in samples
     hop = int(round(hop_sec * fs))   # hop size (how much we slide forward)
     for start in range(0, max(len(x) - win + 1, 0), hop):
         yield start, x[start:start+win]
 
+def remove_gravity(ax, ay, az, acc_times, gravity_x, gravity_y, gravity_z, gravity_times):
+    """
+    Remove gravity from accelerometer data using direct sensor readings with timestamp alignment.
+    
+    Parameters:
+    ax, ay, az: accelerometer data arrays
+    acc_times: accelerometer timestamps
+    gravity_x, gravity_y, gravity_z: gravity sensor data arrays
+    gravity_times: gravity sensor timestamps
+    
+    Returns:
+    lax, lay, laz: linear acceleration (gravity removed)
+    """
+    # Interpolate gravity data to match accelerometer timestamps
+    gravity_x_interp = np.interp(acc_times, gravity_times, gravity_x)
+    gravity_y_interp = np.interp(acc_times, gravity_times, gravity_y)
+    gravity_z_interp = np.interp(acc_times, gravity_times, gravity_z)
+    
+    # Remove interpolated gravity from accelerometer data
+    lax = ax - gravity_x_interp
+    lay = ay - gravity_y_interp
+    laz = az - gravity_z_interp
+    return lax, lay, laz
+
+# Remove gravity using direct sensor data with proper timestamp alignment
+lax, lay, laz = remove_gravity(ax, ay, az, accelerometer_times, gravity_x, gravity_y, gravity_z, gravity_times)
 
 # Remove gravity yapacaksak totalacc dosyasından gravity çıkarılacak yoksa acc dosyası kullanılacak şimdilik bu kısmı atlıyorum
 # ama bu kısmı kullanmamız gerekirse de direkt x, y, z leri gravityden çıkartıp döndüreceğiz
