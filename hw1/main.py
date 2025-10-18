@@ -82,15 +82,15 @@ print(features_df)
 
 t_acc = accelerometer_data['seconds_elapsed'].to_numpy(dtype=float)
 
-# sıralı ve tekil olsun:
+# order and remove duplicates
 t_acc = np.sort(t_acc)
-t_acc = t_acc[np.insert(np.diff(t_acc) > 0, 0, True)]  # duplicate/geri gidenleri at
+t_acc = t_acc[np.insert(np.diff(t_acc) > 0, 0, True)]  #remove duplicates and non-increasing timestamps
 
 dt = np.diff(t_acc)
 dt = dt[(dt > 0) & np.isfinite(dt)]
-fs = 1.0 / np.median(dt)   # float kalsın, int'e ÇEVİRME
+fs = 1.0 / np.median(dt)   
 
-# gravity tarafını da hazırlayıp sırala
+# gravity data preparation
 g = gravity_data[['seconds_elapsed','x','y','z']].to_numpy(dtype=float)
 idx = np.argsort(g[:,0])
 g_time = g[idx, 0]
