@@ -35,6 +35,12 @@ acc['time'] = acc['seconds_elapsed']
 # Compute magnitude
 acc['magnitude'] = np.sqrt(acc['x']**2 + acc['y']**2 + acc['z']**2)
 
+ax = acc['x'].values
+ay = acc['y'].values
+az = acc['z'].values
+
+# fs değeri hesaplanmalı
+
 # Plot magnitude with activity segments
 plt.figure(figsize=(12,6))
 plt.plot(acc['time'], acc['magnitude'], color='black', linewidth=0.8)
@@ -121,6 +127,7 @@ def count_steps_streaming(ax, ay, az, fs, win_sec=3.0, hop_sec=1.0):
     step_times = []  # collect timestamps of accepted peaks
     min_dist_samples = int(fs / 3.0)  # ~max 3 Hz cadence
     for start, seg in sliding_windows(mag_f, win_sec, hop_sec, fs):
+        #buradaki t değeri nasıl alacağız nedir bakılsın
         seg_t = t[start:start+len(seg)]
         # Adaptive threshold per window:
         thr = robust_threshold(seg, k=1.0)
