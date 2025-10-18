@@ -166,27 +166,21 @@ def robust_threshold(x, k=1.0):
     return med + k * mad
 
 
-def count_steps_streaming(ax, ay, az, fs, win_sec=3.0, hop_sec=1.0):
-    #lax, lay, laz = remove_gravity(ax, ay, az, fs, ma_sec=0.8)  # or highpass(...)
+def count_steps_streaming(ax, ay, az, t, fs, win_sec=3.0, hop_sec=1.0):
     mag = magnitude(ax, ay, az)
-    mag_f = lowpass_fir(mag, fs, fc=3.0, order=2)
+    mag_f = lowpass_fir(mag, fs, fc_hz=3.0, num_taps=101)
 
     step_times = []  # collect timestamps of accepted peaks
     min_dist_samples = int(fs / 3.0)  # ~max 3 Hz cadence
-    for start, seg in sliding_windows(mag_f, win_sec, hop_sec, fs):
-        #buradaki t değeri nasıl alacağız nedir bakılsın
-        seg_t = t[start:start+len(seg)]
-        # Adaptive threshold per window:
+
+    for start, seg in sliding_windows(mag_f, fs, win_sec=win_sec, hop_sec=hop_sec):
+        seg_t = t[start:start+len(seg)]   # artık t dışarıdan geldi
         thr = robust_threshold(seg, k=1.0)
         pks, _ = find_peaks(seg, distance=min_dist_samples, height=thr)
-
-        # Convert local indices to global times
         for pk in pks:
             step_times.append(seg_t[pk])
 
-    # Optional: non-maximum suppression across the whole list
     step_times = np.array(sorted(step_times))
-    # Enforce global min spacing again (helps de-duplicate overlap)
     min_dt = 1.0 / 3.0  # seconds (≈ 3 Hz)
     dedup = [step_times[0]] if len(step_times) else []
     for s in step_times[1:]:
@@ -195,7 +189,9 @@ def count_steps_streaming(ax, ay, az, fs, win_sec=3.0, hop_sec=1.0):
     return np.array(dedup)
 
 # ax, ay, az from accelerometer data take them from file
-step_times = count_steps_streaming(ax, ay, az, fs, win_sec=3.0, hop_sec=1.0)
+step_times = count_steps_streaming(ax, ay, az, t_acc, fs, win_sec=3.0, hop_sec=1.0)
 step_count = len(step_times)
+
+print(f"Estimated steps: {step_count}")
 
 
