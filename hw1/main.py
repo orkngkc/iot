@@ -78,13 +78,26 @@ print(features_df)
 
 # -------------------- PART 2: Step Detection --------------------
 
-gravity_x = gravity_data['x'].values
-gravity_y = gravity_data['y'].values
-gravity_z = gravity_data['z'].values
-gravity_times = gravity_data['time'].values
 
-accelerometer_times = accelerometer_data['time'].values
-fs = int(round(1.0 / np.median(np.diff(accelerometer_times))))
+
+t_acc = accelerometer_data['seconds_elapsed'].to_numpy(dtype=float)
+
+# sıralı ve tekil olsun:
+t_acc = np.sort(t_acc)
+t_acc = t_acc[np.insert(np.diff(t_acc) > 0, 0, True)]  # duplicate/geri gidenleri at
+
+dt = np.diff(t_acc)
+dt = dt[(dt > 0) & np.isfinite(dt)]
+fs = 1.0 / np.median(dt)   # float kalsın, int'e ÇEVİRME
+
+# gravity tarafını da hazırlayıp sırala
+g = gravity_data[['seconds_elapsed','x','y','z']].to_numpy(dtype=float)
+idx = np.argsort(g[:,0])
+g_time = g[idx, 0]
+gx = g[idx, 1]; gy = g[idx, 2]; gz = g[idx, 3]
+
+
+
 
 
 def sliding_windows(x, fs, win_sec=3.0, hop_sec=1.0):
@@ -118,7 +131,7 @@ def remove_gravity(ax, ay, az, acc_times, gravity_x, gravity_y, gravity_z, gravi
     return lax, lay, laz
 
 # Remove gravity using direct sensor data with proper timestamp alignment
-lax, lay, laz = remove_gravity(ax, ay, az, accelerometer_times, gravity_x, gravity_y, gravity_z, gravity_times)
+lax, lay, laz = remove_gravity(ax, ay, az, t_acc, gx, gy, gz, g_time)
 
 # Remove gravity yapacaksak totalacc dosyasından gravity çıkarılacak yoksa acc dosyası kullanılacak şimdilik bu kısmı atlıyorum
 # ama bu kısmı kullanmamız gerekirse de direkt x, y, z leri gravityden çıkartıp döndüreceğiz
