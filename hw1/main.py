@@ -133,8 +133,7 @@ def remove_gravity(ax, ay, az, acc_times, gravity_x, gravity_y, gravity_z, gravi
 # Remove gravity using direct sensor data with proper timestamp alignment
 lax, lay, laz = remove_gravity(ax, ay, az, t_acc, gx, gy, gz, g_time)
 
-# Remove gravity yapacaksak totalacc dosyasından gravity çıkarılacak yoksa acc dosyası kullanılacak şimdilik bu kısmı atlıyorum
-# ama bu kısmı kullanmamız gerekirse de direkt x, y, z leri gravityden çıkartıp döndüreceğiz
+
 
 def magnitude(ax, ay, az):
     return np.sqrt(ax*ax + ay*ay + az*az)
