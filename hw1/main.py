@@ -47,12 +47,31 @@ def load_sensor_data(file_path):
     except Exception as e:
         print(f"Error loading data: {e}")
         return None
+    
+
+acc = input("Enter the path to the accelerometer data CSV file: (If using default, press Enter) ")
+gravity = input("Enter the path to the gravity data CSV file: (If using default, press Enter) ")
+gyro = input("Enter the path to the gyroscope data CSV file: (If using default, press Enter) ")
+
+if acc.strip() == '':
+    accelerometer_path = '2025-10-12_16-18-03/TotalAcceleration.csv'
+else:
+    accelerometer_path = acc
+
+if gravity.strip() == '':
+    gravity_path = '2025-10-12_16-18-03/Gravity.csv'
+else:
+    gravity_path = gravity
+
+if gyro.strip() == '':
+    gyroscope_path = '2025-10-12_16-18-03/Gyroscope.csv'
+else:
+    gyroscope_path = gyro
 
 
-
-accelerometer_data = load_sensor_data('2025-10-12_16-18-03/TotalAcceleration.csv')
-gyroscope_data = load_sensor_data('2025-10-12_16-18-03/Gyroscope.csv')
-gravity_data = load_sensor_data('2025-10-12_16-18-03/Gravity.csv')
+accelerometer_data = load_sensor_data(accelerometer_path)
+gyroscope_data = load_sensor_data(gyroscope_path)
+gravity_data = load_sensor_data(gravity_path)
 
 
 
