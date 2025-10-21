@@ -85,9 +85,9 @@ def custom_find_peaks(signal, height=None, distance=None):
     
     return np.array(peaks), properties
 
-accelerometer_data = load_sensor_data('hw1/2025-10-12_16-18-03/TotalAcceleration.csv')
-gyroscope_data = load_sensor_data('hw1/2025-10-12_16-18-03/Gyroscope.csv')
-gravity_data = load_sensor_data('hw1/2025-10-12_16-18-03/Gravity.csv')
+accelerometer_data = load_sensor_data('2025-10-12_16-18-03/TotalAcceleration.csv')
+gyroscope_data = load_sensor_data('2025-10-12_16-18-03/Gyroscope.csv')
+gravity_data = load_sensor_data('2025-10-12_16-18-03/Gravity.csv')
 
 
 def remove_gravity(ax, ay, az, acc_times, gravity_x, gravity_y, gravity_z, gravity_times):
@@ -422,21 +422,21 @@ def madgwick_ahrs(ax, ay, az, gx, gy, gz, dt, beta=0.1):
     return roll, pitch, yaw
 
 # Apply pose estimation algorithms
-print("\n" + "="*50)
-print("PART 3: POSE ESTIMATION (EXTRA CREDIT)")
-print("="*50)
-print("\nWHAT IS THIS?")
-print("This shows how your phone was tilted and turned during the activities.")
-print("Like when you tilt your phone to take a photo or turn it sideways.")
-print("\nWe measure 3 things:")
-print("• ROLL:  Phone tilted left or right")
-print("• PITCH: Phone tilted up or down")  
-print("• YAW:   Phone turned left or right")
-print("\nWe try 2 different ways to calculate this:")
-print("• Way 1: Simple method")
-print("• Way 2: Fancy method")
-print("\nThe graphs below show what happened!")
-print("="*50)
+print("\n" + "="*60)
+print("PART 3: POSE ESTIMATION")
+print("="*60)
+print("\nPose estimation determines the orientation of the device in 3D space.")
+print("This is useful for understanding how the device was positioned and")
+print("moved during different activities.")
+print("\nWe calculate three rotation angles:")
+print("• ROLL:  Rotation around X-axis (left-right tilting)")
+print("• PITCH: Rotation around Y-axis (up-down tilting)")  
+print("• YAW:   Rotation around Z-axis (left-right turning)")
+print("\nTwo algorithms are implemented for comparison:")
+print("• Complementary Filter: Simple fusion of accelerometer and gyroscope")
+print("• Madgwick AHRS: Advanced quaternion-based algorithm")
+print("\nThe following plots show the estimated orientation over time.")
+print("="*60)
 
 # Complementary filter
 roll_comp, pitch_comp, yaw_comp = complementary_filter(ax_interp, ay_interp, az_interp, 
@@ -455,56 +455,49 @@ roll_madgwick_deg = np.degrees(roll_madgwick)
 pitch_madgwick_deg = np.degrees(pitch_madgwick)
 yaw_madgwick_deg = np.degrees(yaw_madgwick)
 
-# Visualize pose estimation results
-print("\nMaking graphs...")
 
-fig, axes = plt.subplots(3, 2, figsize=(16, 12))
-fig.suptitle('How Your Phone Was Tilted During Activities', fontsize=16, fontweight='bold')
 
-# Roll angle - Left/right tilting
-axes[0,0].plot(common_time, roll_comp_deg, 'b-', label='Simple Method', linewidth=1)
-axes[0,0].set_title('Left/Right Tilting\n(Simple Method)', fontweight='bold')
-axes[0,0].set_xlabel('Time (seconds)')
-axes[0,0].set_ylabel('Angle (degrees)')
-axes[0,0].grid(True, alpha=0.3)
-axes[0,0].axhline(y=0, color='k', linestyle='--', alpha=0.5)
+fig, axes = plt.subplots(3, 2, figsize=(15, 12))
+fig.suptitle('Device Orientation During Activities', fontsize=14, fontweight='bold')
 
-axes[0,1].plot(common_time, roll_madgwick_deg, 'r-', label='Fancy Method', linewidth=1)
-axes[0,1].set_title('Left/Right Tilting\n(Fancy Method)', fontweight='bold')
-axes[0,1].set_xlabel('Time (seconds)')
-axes[0,1].set_ylabel('Angle (degrees)')
-axes[0,1].grid(True, alpha=0.3)
-axes[0,1].axhline(y=0, color='k', linestyle='--', alpha=0.5)
+# Roll angle plots
+axes[0,0].plot(common_time, roll_comp_deg, 'b-', linewidth=1)
+axes[0,0].set_title('Roll Angle - Complementary Filter')
+axes[0,0].set_xlabel('Time (s)')
+axes[0,0].set_ylabel('Roll (degrees)')
+axes[0,0].grid(True)
 
-# Pitch angle - Up/down tilting
-axes[1,0].plot(common_time, pitch_comp_deg, 'b-', label='Simple Method', linewidth=1)
-axes[1,0].set_title('Up/Down Tilting\n(Simple Method)', fontweight='bold')
-axes[1,0].set_xlabel('Time (seconds)')
-axes[1,0].set_ylabel('Angle (degrees)')
-axes[1,0].grid(True, alpha=0.3)
-axes[1,0].axhline(y=0, color='k', linestyle='--', alpha=0.5)
+axes[0,1].plot(common_time, roll_madgwick_deg, 'r-', linewidth=1)
+axes[0,1].set_title('Roll Angle - Madgwick AHRS')
+axes[0,1].set_xlabel('Time (s)')
+axes[0,1].set_ylabel('Roll (degrees)')
+axes[0,1].grid(True)
 
-axes[1,1].plot(common_time, pitch_madgwick_deg, 'r-', label='Fancy Method', linewidth=1)
-axes[1,1].set_title('Up/Down Tilting\n(Fancy Method)', fontweight='bold')
-axes[1,1].set_xlabel('Time (seconds)')
-axes[1,1].set_ylabel('Angle (degrees)')
-axes[1,1].grid(True, alpha=0.3)
-axes[1,1].axhline(y=0, color='k', linestyle='--', alpha=0.5)
+# Pitch angle plots
+axes[1,0].plot(common_time, pitch_comp_deg, 'b-', linewidth=1)
+axes[1,0].set_title('Pitch Angle - Complementary Filter')
+axes[1,0].set_xlabel('Time (s)')
+axes[1,0].set_ylabel('Pitch (degrees)')
+axes[1,0].grid(True)
 
-# Yaw angle - Left/right turning
-axes[2,0].plot(common_time, yaw_comp_deg, 'b-', label='Simple Method', linewidth=1)
-axes[2,0].set_title('Left/Right Turning\n(Simple Method)', fontweight='bold')
-axes[2,0].set_xlabel('Time (seconds)')
-axes[2,0].set_ylabel('Angle (degrees)')
-axes[2,0].grid(True, alpha=0.3)
-axes[2,0].axhline(y=0, color='k', linestyle='--', alpha=0.5)
+axes[1,1].plot(common_time, pitch_madgwick_deg, 'r-', linewidth=1)
+axes[1,1].set_title('Pitch Angle - Madgwick AHRS')
+axes[1,1].set_xlabel('Time (s)')
+axes[1,1].set_ylabel('Pitch (degrees)')
+axes[1,1].grid(True)
 
-axes[2,1].plot(common_time, yaw_madgwick_deg, 'r-', label='Fancy Method', linewidth=1)
-axes[2,1].set_title('Left/Right Turning\n(Fancy Method)', fontweight='bold')
-axes[2,1].set_xlabel('Time (seconds)')
-axes[2,1].set_ylabel('Angle (degrees)')
-axes[2,1].grid(True, alpha=0.3)
-axes[2,1].axhline(y=0, color='k', linestyle='--', alpha=0.5)
+# Yaw angle plots
+axes[2,0].plot(common_time, yaw_comp_deg, 'b-', linewidth=1)
+axes[2,0].set_title('Yaw Angle - Complementary Filter')
+axes[2,0].set_xlabel('Time (s)')
+axes[2,0].set_ylabel('Yaw (degrees)')
+axes[2,0].grid(True)
+
+axes[2,1].plot(common_time, yaw_madgwick_deg, 'r-', linewidth=1)
+axes[2,1].set_title('Yaw Angle - Madgwick AHRS')
+axes[2,1].set_xlabel('Time (s)')
+axes[2,1].set_ylabel('Yaw (degrees)')
+axes[2,1].grid(True)
 
 # Add activity segments
 colors = ['#b0bec5', '#c5e1a5', '#81d4fa', '#ef9a9a']
@@ -517,43 +510,33 @@ for i, (start, end, label) in enumerate(segments):
 plt.tight_layout()
 plt.show()
 
-print("Done! Each graph shows one type of phone movement.")
 
 # Compare methods side by side
-print("\nMaking comparison graphs...")
+fig, axes = plt.subplots(3, 1, figsize=(12, 10))
 
-fig, axes = plt.subplots(3, 1, figsize=(14, 12))
-fig.suptitle('Comparing Both Methods\n(Blue = Simple, Red = Fancy)', fontsize=14, fontweight='bold')
+axes[0].plot(common_time, roll_comp_deg, 'b-', label='Complementary Filter', linewidth=1)
+axes[0].plot(common_time, roll_madgwick_deg, 'r-', label='Madgwick AHRS', linewidth=1)
+axes[0].set_title('Roll Angle Comparison')
+axes[0].set_xlabel('Time (s)')
+axes[0].set_ylabel('Roll (degrees)')
+axes[0].legend()
+axes[0].grid(True)
 
-# Roll comparison
-axes[0].plot(common_time, roll_comp_deg, 'b-', label='Simple Method', linewidth=2)
-axes[0].plot(common_time, roll_madgwick_deg, 'r-', label='Fancy Method', linewidth=2)
-axes[0].set_title('Left/Right Tilting', fontweight='bold', fontsize=12)
-axes[0].set_xlabel('Time (seconds)')
-axes[0].set_ylabel('Angle (degrees)')
-axes[0].legend(fontsize=10)
-axes[0].grid(True, alpha=0.3)
-axes[0].axhline(y=0, color='k', linestyle='--', alpha=0.5)
+axes[1].plot(common_time, pitch_comp_deg, 'b-', label='Complementary Filter', linewidth=1)
+axes[1].plot(common_time, pitch_madgwick_deg, 'r-', label='Madgwick AHRS', linewidth=1)
+axes[1].set_title('Pitch Angle Comparison')
+axes[1].set_xlabel('Time (s)')
+axes[1].set_ylabel('Pitch (degrees)')
+axes[1].legend()
+axes[1].grid(True)
 
-# Pitch comparison
-axes[1].plot(common_time, pitch_comp_deg, 'b-', label='Simple Method', linewidth=2)
-axes[1].plot(common_time, pitch_madgwick_deg, 'r-', label='Fancy Method', linewidth=2)
-axes[1].set_title('Up/Down Tilting', fontweight='bold', fontsize=12)
-axes[1].set_xlabel('Time (seconds)')
-axes[1].set_ylabel('Angle (degrees)')
-axes[1].legend(fontsize=10)
-axes[1].grid(True, alpha=0.3)
-axes[1].axhline(y=0, color='k', linestyle='--', alpha=0.5)
-
-# Yaw comparison
-axes[2].plot(common_time, yaw_comp_deg, 'b-', label='Simple Method', linewidth=2)
-axes[2].plot(common_time, yaw_madgwick_deg, 'r-', label='Fancy Method', linewidth=2)
-axes[2].set_title('Left/Right Turning', fontweight='bold', fontsize=12)
-axes[2].set_xlabel('Time (seconds)')
-axes[2].set_ylabel('Angle (degrees)')
-axes[2].legend(fontsize=10)
-axes[2].grid(True, alpha=0.3)
-axes[2].axhline(y=0, color='k', linestyle='--', alpha=0.5)
+axes[2].plot(common_time, yaw_comp_deg, 'b-', label='Complementary Filter', linewidth=1)
+axes[2].plot(common_time, yaw_madgwick_deg, 'r-', label='Madgwick AHRS', linewidth=1)
+axes[2].set_title('Yaw Angle Comparison')
+axes[2].set_xlabel('Time (s)')
+axes[2].set_ylabel('Yaw (degrees)')
+axes[2].legend()
+axes[2].grid(True)
 
 # Add activity segments
 colors = ['#b0bec5', '#c5e1a5', '#81d4fa', '#ef9a9a']
@@ -566,32 +549,23 @@ for i, (start, end, label) in enumerate(segments):
 plt.tight_layout()
 plt.show()
 
-print("Done! If the blue and red lines look similar, both methods agree.")
-
 # Print summary statistics
-print("\n" + "="*40)
-print("RESULTS")
-print("="*40)
-print(f"Time: {common_time[-1] - common_time[0]:.1f} seconds")
-print(f"Measurements: {len(common_time):,}")
+print("=== POSE ESTIMATION SUMMARY ===")
+print(f"Data duration: {common_time[-1] - common_time[0]:.1f} seconds")
+print(f"Sampling rate: {1/dt:.1f} Hz")
+print(f"Total samples: {len(common_time)}")
 
-print("\nWHAT THE NUMBERS MEAN:")
-print("These show how much your phone moved:")
-print("• 0° = Phone is straight")
-print("• 90° = Phone tilted a lot")
-print("• 180° = Phone upside down")
+print("\n--- Complementary Filter Results ---")
+print(f"Roll range: {roll_comp_deg.min():.1f}° to {roll_comp_deg.max():.1f}°")
+print(f"Pitch range: {pitch_comp_deg.min():.1f}° to {pitch_comp_deg.max():.1f}°")
+print(f"Yaw range: {yaw_comp_deg.min():.1f}° to {yaw_comp_deg.max():.1f}°")
 
-print("\nSIMPLE METHOD:")
-print(f"   Left/Right:  {roll_comp_deg.min():+6.1f}° to {roll_comp_deg.max():+6.1f}°")
-print(f"   Up/Down:     {pitch_comp_deg.min():+6.1f}° to {pitch_comp_deg.max():+6.1f}°")
-print(f"   Turning:     {yaw_comp_deg.min():+6.1f}° to {yaw_comp_deg.max():+6.1f}°")
+print("\n--- Madgwick AHRS Results ---")
+print(f"Roll range: {roll_madgwick_deg.min():.1f}° to {roll_madgwick_deg.max():.1f}°")
+print(f"Pitch range: {pitch_madgwick_deg.min():.1f}° to {pitch_madgwick_deg.max():.1f}°")
+print(f"Yaw range: {yaw_madgwick_deg.min():.1f}° to {yaw_madgwick_deg.max():.1f}°")
 
-print("\nFANCY METHOD:")
-print(f"   Left/Right:  {roll_madgwick_deg.min():+6.1f}° to {roll_madgwick_deg.max():+6.1f}°")
-print(f"   Up/Down:     {pitch_madgwick_deg.min():+6.1f}° to {pitch_madgwick_deg.max():+6.1f}°")
-print(f"   Turning:     {yaw_madgwick_deg.min():+6.1f}° to {yaw_madgwick_deg.max():+6.1f}°")
+print("\n=== POSE ESTIMATION COMPLETED ===")
 
-print("\nDONE!")
-print("="*40)
 
 
