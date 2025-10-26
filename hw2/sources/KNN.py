@@ -22,9 +22,9 @@ class KNN:
         """Compute the Euclidean distance between two points.
 
         Parameters:
-        x1 : array-like, shape (n_features,)
+        x1 : np.ndarray, shape (n_features,)
             First point.
-        x2 : array-like, shape (n_features,)
+        x2 : np.ndarray, shape (n_features,)
             Second point.
 
         Returns:
@@ -37,11 +37,11 @@ class KNN:
         """Predict the labels for the given data.
 
         Parameters:
-        X : array-like, shape (n_samples, n_features)
+        X : np.ndarray, shape (n_samples, n_features)
             Data to predict.
 
         Returns:
-        y_pred : array-like, shape (n_samples,)
+        y_pred : np.ndarray, shape (n_samples,)
             Predicted labels.
         """
 
@@ -62,18 +62,43 @@ class KNN:
         """Evaluate the accuracy of the model.
 
         Parameters:
-        X : array-like, shape (n_samples, n_features)
+        X : np.ndarray, shape (n_samples, n_features)
             Test data.
-        y : array-like, shape (n_samples,)
+        y : np.ndarray, shape (n_samples,)
             True labels.
 
         Returns:
         accuracy : float
             Accuracy of the model on the test data.
+        recall : float
+            Recall of the model on the test data.
+        precision : float
+            Precision of the model on the test data.
+        f1_score : float
+            F1 score of the model on the test data.
         """
-        y_pred = self.predict(X)
-        accuracy = np.sum(y_pred == y) / len(y)
-        return accuracy
+        y_pred = self._predict(X)
+
+        tp = 0
+        fp = 0
+        fn = 0
+        tn = 0
+
+        for true, pred in zip(y, y_pred):
+            if true == 1 and pred == 1:
+                tp += 1
+            elif true == 1 and pred == 0:
+                fn += 1
+            elif true == 0 and pred == 1:
+                fp += 1
+            elif true == 0 and pred == 0:
+                tn += 1
+
+        accuracy = (tp + tn) / (tp + tn + fp + fn)
+        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+        return accuracy, recall, precision, f1_score
     
     def __repr__(self):
         """
