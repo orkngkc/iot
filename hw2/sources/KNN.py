@@ -1,8 +1,11 @@
 import numpy as np
+from .metrics import Metrics
+from sklearn.metrics import confusion_matrix, classification_report
 
 class KNN:
-    def __init__(self, k=3):
+    def __init__(self, k=3, number_of_classes=None):
         self.k = k
+        self.number_of_classes = number_of_classes
         self.X_train = None
         self.y_train = None
 
@@ -52,7 +55,7 @@ class KNN:
             # Get the indices of the k nearest neighbors
             k_indices = np.argsort(distances)[:self.k]
             # Get the most common class label among the neighbors
-            most_common = max(k_indices, key=k_indices.count)
+            most_common = np.bincount(self.y_train[k_indices]).argmax()
             y_pred.append(most_common)
 
         
@@ -79,63 +82,17 @@ class KNN:
         """
         y_pred = self._predict(X)
 
-        tp = 0
-        fp = 0
-        fn = 0
-        tn = 0
+        confusion_mat = Metrics.confusion_matrix(y, y_pred, self.number_of_classes)
+        scikit_conf_mat = confusion_matrix(y, y_pred)
+        class_report = classification_report(y, y_pred)
+        print("Confusion Matrix:\n", scikit_conf_mat)
+        print("Classification Report:\n", class_report)
 
-        for true, pred in zip(y, y_pred):
-            if true == 1 and pred == 1:
-                tp += 1
-            elif true == 1 and pred == 0:
-                fn += 1
-            elif true == 0 and pred == 1:
-                fp += 1
-            elif true == 0 and pred == 0:
-                tn += 1
+        print("--------------- Custom Metrics Calculation ---------------")
+        if self.number_of_classes is None:
+            self.number_of_classes = confusion_mat.shape[0]
 
-        accuracy = (tp + tn) / (tp + tn + fp + fn)
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-        f1_score = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
-        return accuracy, recall, precision, f1_score
-    
-    def __repr__(self):
-        """
-        K-Nearest Neighbors (KNN) classifier.
+        metric_results, accuracy = Metrics.calculate_metrics(confusion_mat, self.number_of_classes)
 
-        This object represents a KNN classifier configured with a fixed number of neighbors.
-        Its repr appears as "KNN(k=<value>)", where <value> is the integer number of neighbors.
-
-        Parameters
-        ----------
-        k : int
-            Number of nearest neighbors to consider when predicting labels.
-
-        Attributes
-        ----------
-        k : int
-            The number of neighbors configured for this instance.
-
-        Methods (typical)
-        -----------------
-        fit(X, y)
-            Store training samples and their labels for later neighbor queries.
-        predict(X)
-            Predict labels for provided samples by majority vote among the k nearest neighbors.
-        score(X, y)
-            Compute the accuracy of predictions on (X, y).
-
-        Notes
-        -----
-        This is a simple instance-based classifier. Implementation details such as distance
-        metric, tie-breaking behavior, weighting of neighbors, and acceleration structures
-        (e.g., KD-tree) affect performance and should be documented in the implementation.
-        """
-        # write like this is a knn object k= this value and explain this class
-        return (
-            f"This is a KNN object, k={self.k}. "
-            "Simple k-nearest neighbors classifier using Euclidean distance. "
-            "Call fit(X, y) to store training data, predict(X) to get labels, and evaluate(X, y) for accuracy."
-        )
+        return metric_results, accuracy, confusion_mat
         
