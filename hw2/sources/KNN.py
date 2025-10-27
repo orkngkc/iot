@@ -1,5 +1,5 @@
 import numpy as np
-from .metrics import Metrics
+from .custom_metrics import Metrics
 from sklearn.metrics import confusion_matrix, classification_report
 
 class KNN:

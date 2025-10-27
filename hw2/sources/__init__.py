@@ -1,2 +1,2 @@
 from .KNN import KNN
-from .metrics import Metrics
+from .custom_metrics import Metrics
