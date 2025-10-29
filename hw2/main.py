@@ -1,6 +1,7 @@
 from sources.KNN import KNN
 import numpy as np
-#
+import os
+
 def read_data(file_path: str, x = True) -> np.ndarray:
     # Placeholder for data reading logic
     file = open(file_path, 'r')
@@ -25,13 +26,25 @@ def read_data(file_path: str, x = True) -> np.ndarray:
 
 def main():
 
+    # check the operating system
+    if os.name == 'nt':
+        X_train_path = 'UCI HAR Dataset\\train\\X_train.txt'
+        y_train_path = 'UCI HAR Dataset\\train\\y_train.txt'
+        X_test_path = 'UCI HAR Dataset\\test\\X_test.txt'
+        y_test_path = 'UCI HAR Dataset\\test\\y_test.txt'
+    else:
+        X_train_path = 'UCI HAR Dataset/train/X_train.txt'
+        y_train_path = 'UCI HAR Dataset/train/y_train.txt'
+        X_test_path = 'UCI HAR Dataset/test/X_test.txt'
+        y_test_path = 'UCI HAR Dataset/test/y_test.txt'
+
     # read training data
-    X_train = read_data('UCI HAR Dataset/train/X_train.txt', x=True)
-    y_train = read_data('UCI HAR Dataset/train/y_train.txt', x=False)
+    X_train = read_data(X_train_path, x=True)
+    y_train = read_data(y_train_path, x=False)
 
     # read test data
-    X_test = read_data('UCI HAR Dataset/test/X_test.txt', x=True)
-    y_test = read_data('UCI HAR Dataset/test/y_test.txt', x=False)
+    X_test = read_data(X_test_path, x=True)
+    y_test = read_data(y_test_path, x=False)
 
     # create KNN model
     model = KNN(k=5)
