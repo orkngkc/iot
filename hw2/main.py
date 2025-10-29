@@ -38,8 +38,7 @@ def main():
     y_test_path  = os.path.join(DATASET_DIR, "test",  "y_test.txt")
 
     
-    print("X_train_path =", X_train_path)
-    print("exists?      =", os.path.exists(X_train_path))
+
 
     # read training data
     X_train = read_data(X_train_path, x=True)
