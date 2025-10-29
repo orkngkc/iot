@@ -67,7 +67,69 @@ def build_har_model(
 
     model = models.Model(inputs, outputs, name=model_name)
     return model
+def build_har_model_light(
+    input_timesteps=128,
+    num_channels=9,
+    num_classes=6,
+    dropout_conv=0.3,
+    dropout_fc=0.4,
+    model_name="UCI_HAR_CNN_LIGHT"
+):
+    """
+    Lighter/stabler CNN for HAR.
+    Uses fewer filters and a smaller dense layer to reduce capacity
+    (~1e5 params instead of ~3.7e5 in the bigger model).
+    """
 
+    inputs = layers.Input(shape=(input_timesteps, num_channels))
+
+    # --- Conv Block 1 ---
+    x = layers.Conv1D(
+        filters=32,          # was 64
+        kernel_size=5,
+        strides=1,
+        padding="same"
+    )(inputs)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
+    x = layers.Dropout(dropout_conv)(x)
+
+    # --- Conv Block 2 ---
+    x = layers.Conv1D(
+        filters=64,          # was 128
+        kernel_size=5,
+        strides=1,
+        padding="same"
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
+    x = layers.Dropout(dropout_conv)(x)
+
+    # --- Conv Block 3 ---
+    x = layers.Conv1D(
+        filters=128,         # was 256
+        kernel_size=9,
+        strides=1,
+        padding="same"
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
+    x = layers.Dropout(dropout_conv)(x)
+
+    # Global temporal pooling
+    x = layers.GlobalAveragePooling1D()(x)
+
+    # Smaller dense head
+    x = layers.Dense(64)(x)  # was 128
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
+    x = layers.Dropout(dropout_fc)(x)
+
+    # Classifier
+    outputs = layers.Dense(num_classes, activation="softmax")(x)
+
+    model = models.Model(inputs, outputs, name=model_name)
+    return model
 
 def compile_model(model, learning_rate=1e-3):
     """
