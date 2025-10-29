@@ -26,17 +26,20 @@ def read_data(file_path: str, x = True) -> np.ndarray:
 
 def main():
 
-    # check the operating system
-    if os.name == 'nt':
-        X_train_path = 'UCI HAR Dataset\\train\\X_train.txt'
-        y_train_path = 'UCI HAR Dataset\\train\\y_train.txt'
-        X_test_path = 'UCI HAR Dataset\\test\\X_test.txt'
-        y_test_path = 'UCI HAR Dataset\\test\\y_test.txt'
-    else:
-        X_train_path = 'UCI HAR Dataset/train/X_train.txt'
-        y_train_path = 'UCI HAR Dataset/train/y_train.txt'
-        X_test_path = 'UCI HAR Dataset/test/X_test.txt'
-        y_test_path = 'UCI HAR Dataset/test/y_test.txt'
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+    # dataset folder = "UCI HAR Dataset" 
+    DATASET_DIR = os.path.join(BASE_DIR, "UCI HAR Dataset")
+
+    # individual file paths
+    X_train_path = os.path.join(DATASET_DIR, "train", "X_train.txt")
+    y_train_path = os.path.join(DATASET_DIR, "train", "y_train.txt")
+    X_test_path  = os.path.join(DATASET_DIR, "test",  "X_test.txt")
+    y_test_path  = os.path.join(DATASET_DIR, "test",  "y_test.txt")
+
+    
+    print("X_train_path =", X_train_path)
+    print("exists?      =", os.path.exists(X_train_path))
 
     # read training data
     X_train = read_data(X_train_path, x=True)
