@@ -1,6 +1,6 @@
 from sources.KNN import KNN
 import numpy as np
-
+#
 def read_data(file_path: str, x = True) -> np.ndarray:
     # Placeholder for data reading logic
     file = open(file_path, 'r')
