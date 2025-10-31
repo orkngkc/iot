@@ -67,7 +67,69 @@ def build_har_model(
 
     model = models.Model(inputs, outputs, name=model_name)
     return model
+def build_har_model_light(
+    input_timesteps=128,
+    num_channels=9,
+    num_classes=6,
+    dropout_conv=0.3,
+    dropout_fc=0.4,
+    model_name="UCI_HAR_CNN_LIGHT"
+):
+    """
+    Lighter/stabler CNN for HAR.
+    Uses fewer filters and a smaller dense layer to reduce capacity
+    (~1e5 params instead of ~3.7e5 in the bigger model).
+    """
 
+    inputs = layers.Input(shape=(input_timesteps, num_channels))
+
+    # --- Conv Block 1 ---
+    x = layers.Conv1D(
+        filters=32,          # was 64
+        kernel_size=5,
+        strides=1,
+        padding="same"
+    )(inputs)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
+    x = layers.Dropout(dropout_conv)(x)
+
+    # --- Conv Block 2 ---
+    x = layers.Conv1D(
+        filters=64,          # was 128
+        kernel_size=5,
+        strides=1,
+        padding="same"
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
+    x = layers.Dropout(dropout_conv)(x)
+
+    # --- Conv Block 3 ---
+    x = layers.Conv1D(
+        filters=128,         # was 256
+        kernel_size=9,
+        strides=1,
+        padding="same"
+    )(x)
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
+    x = layers.Dropout(dropout_conv)(x)
+
+    # Global temporal pooling
+    x = layers.GlobalAveragePooling1D()(x)
+
+    # Smaller dense head
+    x = layers.Dense(64)(x)  # was 128
+    x = layers.BatchNormalization()(x)
+    x = layers.Activation("relu")(x)
+    x = layers.Dropout(dropout_fc)(x)
+
+    # Classifier
+    outputs = layers.Dense(num_classes, activation="softmax")(x)
+
+    model = models.Model(inputs, outputs, name=model_name)
+    return model
 
 def compile_model(model, learning_rate=1e-3):
     """
@@ -188,19 +250,89 @@ def evaluate_classification_metrics(y_true, y_pred, target_names=None, print_rep
     }
 
 
-def evaluate_on_single_user(model, X_user, y_user, user_label="user", target_names=None):
-    """
-    Helper for per-user scores.
-    Runs predict on that user's samples only,
-    then prints precision / recall / F1 for that user.
-    """
+def run_user_specific_models(
+    X_train_cnn,
+    y_train,
+    subject_train,
+    X_test_cnn,
+    y_test,
+    subject_test,
+    num_classes,
+    input_timesteps,
+    num_channels,
+    batch_size=16
+):
+    # hangi kullanıcılar var testte? (raporlamak için test referanslı gidiyoruz)
+    unique_users = np.unique(subject_test)
 
-    _, y_pred_user = predict_model(model, X_user)
+    user_results = {}
 
-    print(f"===== {user_label} =====")
-    return evaluate_classification_metrics(
-        y_true=y_user,
-        y_pred=y_pred_user,
-        target_names=target_names,
-        print_report=True
-    )
+    for user_id in unique_users:
+        # 1. Bu kullanıcının train indexleri
+        train_idx = np.where(subject_train == user_id)[0]
+        test_idx  = np.where(subject_test  == user_id)[0]
+
+        # bazı kullanıcılar tamamen testte olabilir ama train'de olmayabilir.
+        # o durumda onları atlıyoruz çünkü o kişiyi eğitemeyiz.
+        if len(train_idx) == 0 or len(test_idx) == 0:
+            continue
+
+        X_user_train = X_train_cnn[train_idx]
+        y_user_train = y_train[train_idx]
+
+        X_user_test  = X_test_cnn[test_idx]
+        y_user_test  = y_test[test_idx]
+
+        # 2. model yarat (HER user için sıfırdan)
+        user_model = build_har_model_light(
+            input_timesteps=input_timesteps,
+            num_channels=num_channels,
+            num_classes=num_classes,
+            dropout_conv=0.3,
+            dropout_fc=0.4,
+            model_name=f"UCI_HAR_CNN_LIGHT_USER_{user_id}"
+        )
+
+        user_model = compile_model(
+            user_model,
+            learning_rate=3e-4
+        )
+
+        # 3. sadece bu kullanıcının verisiyle eğitiyoruz
+        # burada validation_split kullanabiliriz çünkü adamın kendi datasından %10 val ayırmak mantıklı
+        user_model, _ = train_model(
+            user_model,
+            X_user_train,
+            y_user_train,
+            X_val=None,
+            y_val=None,
+            use_validation_split=True,
+            validation_split_ratio=0.1,
+            epochs=30,
+            batch_size=batch_size,
+            patience=5,
+            verbose=0  # sessiz, çünkü loopta çok olacak
+        )
+
+        # 4. test tahmini (bu user'ın test pencereleri)
+        _, y_user_pred = predict_model(user_model, X_user_test)
+
+        # 5. metrik hesapla
+        print(f"\n=== Subject {user_id} ===")
+        metrics = evaluate_classification_metrics(
+            y_true=y_user_test,
+            y_pred=y_user_pred,
+            target_names=[
+                "WALKING",
+                "WALKING_UPSTAIRS",
+                "WALKING_DOWNSTAIRS",
+                "SITTING",
+                "STANDING",
+                "LAYING"
+            ],
+            print_report=True
+        )
+
+        user_results[user_id] = metrics["report_text"]
+
+    return user_results
