@@ -1,7 +1,7 @@
 from sources.KNN import KNN
 import numpy as np
 import os
-from sources.CNN import (build_har_model, build_har_model_light, compile_model, run_user_specific_models
+from sources.CNN import (build_har_model, build_har_model_light, compile_model, run_user_specific_models_with_internal_split
                          ,train_model, predict_model,
                          evaluate_classification_metrics)
 
@@ -67,7 +67,7 @@ def main():
         for metric_name, value in metrics.items():
             print(f"  {metric_name}: {value}")
 
-    
+   
     num_classes = len(np.unique(y_train))  # genelde 6
     timesteps   = X_train.shape[1]         # D boyutu (örn 561)
     channels    = 1                        # tek kanal gibi davranıyoruz şimdilik
@@ -137,27 +137,25 @@ def main():
 
     subject_train = read_data(subject_train_path, x=False)
     subject_test  = read_data(subject_test_path,  x=False)
-    print("DEBUG subject_test shape:", subject_test.shape)
-    print("DEBUG unique test subjects:", np.unique(subject_test))
-    print("DEBUG subject_train shape:", subject_train.shape)
-    print("DEBUG unique train subjects:", np.unique(subject_train))
+    X_all_cnn = np.concatenate([X_train_cnn, X_test_cnn], axis=0)
+    y_all     = np.concatenate([y_train,     y_test    ], axis=0)
+    subject_all = np.concatenate([subject_train, subject_test], axis=0)
 
-    user_specific_reports = run_user_specific_models(
-    X_train_cnn=X_train_cnn,
-    y_train=y_train,
-    subject_train=subject_train,
-    X_test_cnn=X_test_cnn,
-    y_test=y_test,
-    subject_test=subject_test,
-    num_classes=len(np.unique(y_train)),
-    input_timesteps=X_train_cnn.shape[1],
-    num_channels=X_train_cnn.shape[2],
-    batch_size=16
+    user_specific_reports = run_user_specific_models_with_internal_split(
+        X_all_cnn=X_all_cnn,
+        y_all=y_all,
+        subject_all=subject_all,
+        num_classes=len(np.unique(y_all)),
+        input_timesteps=X_all_cnn.shape[1],
+        num_channels=X_all_cnn.shape[2],
+        batch_size=16
     )
 
-    print("\n\n=== User Specific Model Reports ===")
-    for user_id, report in user_specific_reports.items():
-        print(f"User {user_id}:")
-        print(report)
+    print("\n====== USER SPECIFIC SUMMARY ======")
+    for uid, rep in user_specific_reports.items():
+        print(f"\n--- Subject {uid} ---")
+        print(rep)
+
+
 if __name__ == "__main__":
     main()
