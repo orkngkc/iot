@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from keras import layers, models
 from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split
 
 
 def build_har_model(
@@ -250,40 +251,39 @@ def evaluate_classification_metrics(y_true, y_pred, target_names=None, print_rep
     }
 
 
-def run_user_specific_models(
-    X_train_cnn,
-    y_train,
-    subject_train,
-    X_test_cnn,
-    y_test,
-    subject_test,
+def run_user_specific_models_with_internal_split(
+    X_all_cnn,
+    y_all,
+    subject_all,
     num_classes,
     input_timesteps,
     num_channels,
     batch_size=16
 ):
-    # hangi kullanıcılar var testte? (raporlamak için test referanslı gidiyoruz)
-    unique_users = np.unique(subject_test)
-
+    unique_users = np.unique(subject_all)
     user_results = {}
 
     for user_id in unique_users:
-        # 1. Bu kullanıcının train indexleri
-        train_idx = np.where(subject_train == user_id)[0]
-        test_idx  = np.where(subject_test  == user_id)[0]
+        # o kullanıcıya ait TÜM örnekleri çek
+        idx = np.where(subject_all == user_id)[0]
 
-        # bazı kullanıcılar tamamen testte olabilir ama train'de olmayabilir.
-        # o durumda onları atlıyoruz çünkü o kişiyi eğitemeyiz.
-        if len(train_idx) == 0 or len(test_idx) == 0:
+        # çok az sample varsa model eğitmek saçma olur, skip
+        if len(idx) < 20:
             continue
 
-        X_user_train = X_train_cnn[train_idx]
-        y_user_train = y_train[train_idx]
+        X_user = X_all_cnn[idx]
+        y_user = y_all[idx]
 
-        X_user_test  = X_test_cnn[test_idx]
-        y_user_test  = y_test[test_idx]
+        # kendi içinden 80/20 split yapıyoruz
+        X_user_train, X_user_test, y_user_train, y_user_test = train_test_split(
+            X_user,
+            y_user,
+            test_size=0.2,
+            random_state=42,
+            stratify=y_user  # her sınıf dengeli kalsın diye
+        )
 
-        # 2. model yarat (HER user için sıfırdan)
+        # model yarat (light versiyon – stabil olan)
         user_model = build_har_model_light(
             input_timesteps=input_timesteps,
             num_channels=num_channels,
@@ -295,11 +295,10 @@ def run_user_specific_models(
 
         user_model = compile_model(
             user_model,
-            learning_rate=3e-4
+            learning_rate=3e-4  # batch=16 ile iyi çalışan lr
         )
 
-        # 3. sadece bu kullanıcının verisiyle eğitiyoruz
-        # burada validation_split kullanabiliriz çünkü adamın kendi datasından %10 val ayırmak mantıklı
+        # kişiye özel fit – kendi train setinin %10’unu val olarak ayırıyoruz
         user_model, _ = train_model(
             user_model,
             X_user_train,
@@ -311,14 +310,13 @@ def run_user_specific_models(
             epochs=30,
             batch_size=batch_size,
             patience=5,
-            verbose=0  # sessiz, çünkü loopta çok olacak
+            verbose=0   # sessize aldık çünkü loop'ta çok user var
         )
 
-        # 4. test tahmini (bu user'ın test pencereleri)
+        # kişiye özel test performansı
         _, y_user_pred = predict_model(user_model, X_user_test)
 
-        # 5. metrik hesapla
-        print(f"\n=== Subject {user_id} ===")
+        print(f"\n=== Subject {int(user_id)} ===")
         metrics = evaluate_classification_metrics(
             y_true=y_user_test,
             y_pred=y_user_pred,
@@ -333,6 +331,7 @@ def run_user_specific_models(
             print_report=True
         )
 
-        user_results[user_id] = metrics["report_text"]
+        # rapor için sakla (mesela rapora tablo halinde koymak istersen)
+        user_results[int(user_id)] = metrics["report_text"]
 
     return user_results
