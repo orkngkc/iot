@@ -1,9 +1,9 @@
 from sources.KNN import KNN
 import numpy as np
 import os
-from sources.CNN import (build_har_model, build_har_model_light, compile_model
+from sources.CNN import (build_har_model, build_har_model_light, compile_model, run_user_specific_models
                          ,train_model, predict_model,
-                         evaluate_classification_metrics, evaluate_on_single_user)
+                         evaluate_classification_metrics)
 
 def read_data(file_path: str, x = True) -> np.ndarray:
     # Placeholder for data reading logic
@@ -54,6 +54,7 @@ def main():
     model = KNN(k=5)
 
     # fit the model
+    
     model.fit(X_train, y_train)
 
     # evaluate the model
@@ -66,7 +67,7 @@ def main():
         for metric_name, value in metrics.items():
             print(f"  {metric_name}: {value}")
 
-
+    
     num_classes = len(np.unique(y_train))  # genelde 6
     timesteps   = X_train.shape[1]         # D boyutu (örn 561)
     channels    = 1                        # tek kanal gibi davranıyoruz şimdilik
@@ -84,7 +85,7 @@ def main():
     dropout_conv=0.3,   # 0.3 conv bloklarda
     dropout_fc=0.4,     # 0.4 dense blokta
     model_name="UCI_HAR_CNN_LIGHT"
-)
+    )
 
     model = compile_model(
         model,
@@ -94,8 +95,8 @@ def main():
     model.summary()
 
     EPOCHS = 30
-    BATCH = 64
-
+    BATCH = 16
+    
     print("[INFO] training model")
     model, history = train_model(
         model,
@@ -105,8 +106,8 @@ def main():
         y_val=None,
         use_validation_split=True,       
         validation_split_ratio=0.1,       
-        epochs=30,
-        batch_size=64,
+        epochs=EPOCHS,
+        batch_size=BATCH,
         patience=5,
         verbose=1
     )
@@ -130,6 +131,33 @@ def main():
         ],
         print_report=True
     )
+    
+    subject_train_path = os.path.join(DATASET_DIR, "train", "subject_train.txt")
+    subject_test_path  = os.path.join(DATASET_DIR, "test",  "subject_test.txt")
 
+    subject_train = read_data(subject_train_path, x=False)
+    subject_test  = read_data(subject_test_path,  x=False)
+    print("DEBUG subject_test shape:", subject_test.shape)
+    print("DEBUG unique test subjects:", np.unique(subject_test))
+    print("DEBUG subject_train shape:", subject_train.shape)
+    print("DEBUG unique train subjects:", np.unique(subject_train))
+
+    user_specific_reports = run_user_specific_models(
+    X_train_cnn=X_train_cnn,
+    y_train=y_train,
+    subject_train=subject_train,
+    X_test_cnn=X_test_cnn,
+    y_test=y_test,
+    subject_test=subject_test,
+    num_classes=len(np.unique(y_train)),
+    input_timesteps=X_train_cnn.shape[1],
+    num_channels=X_train_cnn.shape[2],
+    batch_size=16
+    )
+
+    print("\n\n=== User Specific Model Reports ===")
+    for user_id, report in user_specific_reports.items():
+        print(f"User {user_id}:")
+        print(report)
 if __name__ == "__main__":
     main()
