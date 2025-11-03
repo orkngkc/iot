@@ -4,6 +4,8 @@ import os
 from sources.CNN import (build_har_model, build_har_model_light, compile_model, run_user_specific_models_with_internal_split
                          ,train_model, predict_model,
                          evaluate_classification_metrics)
+from hw2.sources.perceptrons import run_perceptron_demo
+
 
 def read_data(file_path: str, x = True) -> np.ndarray:
     # Placeholder for data reading logic
@@ -156,6 +158,8 @@ def main():
         print(f"\n--- Subject {uid} ---")
         print(rep)
 
+    
+    run_perceptron_demo() #PART 3
 
 if __name__ == "__main__":
     main()
