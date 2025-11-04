@@ -1,32 +1,58 @@
 import numpy as np
+from .custom_metrics import Metrics
+
 
 class Perceptron:
-    def __init__(self, input_dim, lr=0.1, epochs=20):
-        self.w = np.zeros(input_dim)
+    """
+    Simple single-layer perceptron for binary outputs.
+    """
+
+    def __init__(self, input_dim, lr, epochs):
+        self.w = np.zeros(input_dim, dtype=float)
         self.b = 0.0
         self.lr = lr
         self.epochs = epochs
 
-    def activation(self, x):
-        return 1 if x >= 0 else 0
+    def _activation(self, z: float) -> int:
+        return 1 if z >= 0 else 0
 
     def predict(self, x):
+        x = np.array(x, dtype=float)
         z = np.dot(self.w, x) + self.b
-        return self.activation(z)
+        return self._activation(z)
 
-    def fit(self, X, y):
+    def fit(self, X: np.ndarray, y: np.ndarray):
+        X = np.array(X, dtype=float)
+        y = np.array(y, dtype=float)
+
         for _ in range(self.epochs):
             for xi, target in zip(X, y):
                 y_pred = self.predict(xi)
                 err = target - y_pred
-                # perceptron güncellemesi
-                self.w += self.lr * err * xi
-                self.b += self.lr * err
+                if err != 0:
+                    # perceptron update
+                    self.w += self.lr * err * xi
+                    self.b += self.lr * err
         return self
 
 
-def run_perceptron_demo():
-    # 4 adet binary input
+def _train_gate(X_logic,y_gate,lr,epochs):
+    """
+    Helper that mirrors the 'fit' style in KNN/CNN files but for logic gates.
+    """
+    p = Perceptron(input_dim=2, lr=lr, epochs=epochs)
+    p.fit(X_logic, y_gate)
+    return p
+
+
+def part3_gate_models():
+    """
+    Part 3 (extra credit):
+      1. Train OR, AND, NAND perceptrons on truth tables
+      2. Define XOR = AND( NAND(x1,x2), OR(x1,x2) )
+      3. Evaluate XOR with our own custom_metrics (no sklearn)
+    """
+    # 4 input combinations
     X_logic = np.array([
         [0, 0],
         [0, 1],
@@ -34,31 +60,71 @@ def run_perceptron_demo():
         [1, 1],
     ], dtype=float)
 
-    # 1) OR
-    y_or = np.array([0, 1, 1, 1], dtype=float)
-    or_p = Perceptron(input_dim=2).fit(X_logic, y_or)
-
-    # 2) AND
-    y_and = np.array([0, 0, 0, 1], dtype=float)
-    and_p = Perceptron(input_dim=2).fit(X_logic, y_and)
-
-    # 3) NAND
+    # target tables
+    y_or   = np.array([0, 1, 1, 1], dtype=float)
+    y_and  = np.array([0, 0, 0, 1], dtype=float)
     y_nand = np.array([1, 1, 1, 0], dtype=float)
-    nand_p = Perceptron(input_dim=2).fit(X_logic, y_nand)
 
-    # XOR = (x1 NAND x2) AND (x1 OR x2)
-    def xor_gate(x1, x2):
-        out_nand = nand_p.predict(np.array([x1, x2]))
-        out_or   = or_p.predict(np.array([x1, x2]))
-        out_xor  = and_p.predict(np.array([out_nand, out_or]))
-        return out_xor
+    # 1) train gates
+    or_gate   = _train_gate(X_logic, y_or,   lr=0.01, epochs=30)
+    and_gate  = _train_gate(X_logic, y_and,  lr=0.01, epochs=30)
+    nand_gate = _train_gate(X_logic, y_nand, lr=0.01, epochs=30)
 
-    print("===== PART 3: PERCEPTRON LOGIC GATES =====")
+    # 2) build XOR using trained gates
+    def xor_gate(x1: int, x2: int) -> int:
+        inp = np.array([x1, x2], dtype=float)
+        out_nand = nand_gate.predict(inp)  # 0/1
+        out_or   = or_gate.predict(inp)    # 0/1
+        # final AND takes these 2 as inputs
+        return and_gate.predict(np.array([out_nand, out_or], dtype=float))
+
+    # 3) test + metrics (like KNN, but with our own Metrics class)
+    print("\n===== PART 3: PERCEPTRON LOGIC GATES =====\n")
+    y_true_xor = []
+    y_pred_xor = []
+
     for a, b in X_logic:
-        a = int(a); b = int(b)
+        a = int(a)
+        b = int(b)
+        inp = np.array([a, b], dtype=float)
+
+        pred_or   = or_gate.predict(inp)
+        pred_and  = and_gate.predict(inp)
+        pred_nand = nand_gate.predict(inp)
+        pred_xor  = xor_gate(a, b)
+
+        # true xor label
+        true_xor = (a ^ b)  # ground truth for XOR
+
+        y_true_xor.append(true_xor)
+        y_pred_xor.append(pred_xor)
+
         print(f"Inputs: {a} {b}")
-        print(f"  OR:   {or_p.predict([a, b])}")
-        print(f"  AND:  {and_p.predict([a, b])}")
-        print(f"  NAND: {nand_p.predict([a, b])}")
-        print(f"  XOR:  {xor_gate(a, b)}")
-        print("-------------")
+        print(f"  OR   = {pred_or}")
+        print(f"  AND  = {pred_and}")
+        print(f"  NAND = {pred_nand}")
+        print(f"  XOR  = {pred_xor}")
+        print("--------------")
+
+    # convert to numpy
+    y_true_xor = np.array(y_true_xor, dtype=int)
+    y_pred_xor = np.array(y_pred_xor, dtype=int)
+
+    # our Metrics assumes labels start from 1 (it does true-1, pred-1) :contentReference[oaicite:4]{index=4}
+    # so shift {0,1} -> {1,2}
+    y_true_shifted = y_true_xor + 1
+    y_pred_shifted = y_pred_xor + 1
+
+    cm = Metrics.confusion_matrix(y_true_shifted, y_pred_shifted, num_classes=2)
+    metric_results, accuracy = Metrics.calculate_metrics(cm, num_classes=2)
+
+    print("\n--- XOR confusion matrix (using custom_metrics) ---")
+    print(cm)
+    print(f"Accuracy: {accuracy:.2f}")
+    print("Per-class metrics:")
+    for cls_name, vals in metric_results.items():
+        # cls_name will be 'class_0' and 'class_1' because we passed num_classes=2
+        print(f"  {cls_name}: "
+              f"precision={vals['precision']:.2f}, "
+              f"recall={vals['recall']:.2f}, "
+              f"f1={vals['f1_score']:.2f}")
