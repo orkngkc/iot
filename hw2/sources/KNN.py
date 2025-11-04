@@ -1,6 +1,7 @@
 import numpy as np
 from .custom_metrics import Metrics
 from sklearn.metrics import confusion_matrix, classification_report
+import json
 
 class KNN:
     def __init__(self, k=3, number_of_classes=None):
@@ -60,8 +61,8 @@ class KNN:
 
         
         return np.array(y_pred)
-    
-    def evaluate(self, X : np.ndarray, y : np.ndarray) -> float:
+
+    def evaluate(self, X : np.ndarray, y : np.ndarray, target_names: list) -> float:
         """Evaluate the accuracy of the model.
 
         Parameters:
@@ -69,6 +70,8 @@ class KNN:
             Test data.
         y : np.ndarray, shape (n_samples,)
             True labels.
+        target_names : list
+            List of class names.
 
         Returns:
         accuracy : float
@@ -84,20 +87,19 @@ class KNN:
 
         confusion_mat = Metrics.confusion_matrix(y, y_pred, self.number_of_classes)
         scikit_conf_mat = confusion_matrix(y, y_pred)
-        class_report = classification_report(y, y_pred)
+        class_report = classification_report(y, y_pred, target_names=target_names)
         print("Confusion Matrix:\n", scikit_conf_mat)
         print("Classification Report:\n", class_report)
 
         print("--------------- Custom Metrics Calculation ---------------")
         if self.number_of_classes is None:
             self.number_of_classes = confusion_mat.shape[0]
-
         metric_results, accuracy = Metrics.calculate_metrics(confusion_mat, self.number_of_classes)
 
-        return metric_results, accuracy, confusion_mat
+        return metric_results, accuracy, scikit_conf_mat, class_report
     
 
-def train_knn_for_each_user(X_all: np.ndarray, y_all: np.ndarray, subject_all: np.ndarray, k: int,num_classes: int):
+def train_knn_for_each_user(X_all: np.ndarray, y_all: np.ndarray, subject_all: np.ndarray, target_names: list, k: int,num_classes: int):
     """
     Train and evaluate KNN model for each user separately.
 
@@ -108,6 +110,8 @@ def train_knn_for_each_user(X_all: np.ndarray, y_all: np.ndarray, subject_all: n
         All labels.
     subject_all : np.ndarray, shape (n_samples,)
         Subject identifiers for each sample.
+    target_names : list
+        List of class names.
     k : int
         Number of neighbors for KNN.
     num_classes : int
@@ -115,7 +119,15 @@ def train_knn_for_each_user(X_all: np.ndarray, y_all: np.ndarray, subject_all: n
     """
 
     unique_subjects = np.unique(subject_all)
+    total_predictions = []
+    y_all_last = []
     results_per_user = {}
+
+    #shuffle the data
+    perm = np.random.permutation(len(X_all))
+    X_all = X_all[perm]
+    y_all = y_all[perm]
+    conf_matixes = []
 
     for subject in unique_subjects:
         # Get indices for the current subject
@@ -134,9 +146,40 @@ def train_knn_for_each_user(X_all: np.ndarray, y_all: np.ndarray, subject_all: n
         model = KNN(k=k, number_of_classes=num_classes)
         model.fit(X_train_subj, y_train_subj)
 
+        # predict the model
+        y_pred_subj = model._predict(X_test_subj)
+        total_predictions.extend(y_pred_subj.tolist())
+        y_all_last.extend(y_test_subj.tolist())
         # Evaluate the model
-        metric_results, accuracy, confusion_mat = model.evaluate(X_test_subj, y_test_subj)
-        results_per_user[subject] = {'accuracy': accuracy, 'metrics': metric_results, 'confusion_matrix': confusion_mat}
+        conf_matrix = confusion_matrix(y_test_subj, y_pred_subj)
+        conf_matixes.append(conf_matrix)
+        print("Confusion Matrix:\n", conf_matrix)
+        class_report = classification_report(y_test_subj, y_pred_subj, labels=range(num_classes), target_names=target_names, digits=4, zero_division=0)
+        accuracy = np.sum(y_test_subj == y_pred_subj) / len(y_test_subj)
         print(f"Subject {subject} - Accuracy: {accuracy}")
 
-    return results_per_user
+        results_per_user[subject] = {
+            'accuracy': accuracy, 
+            'confusion_matrix': conf_matrix,
+            'classification_report': class_report
+        }
+
+    y_all_last = np.asarray(y_all_last, dtype=int).ravel()
+    total_predictions = np.asarray(total_predictions, dtype=int).ravel()
+    #calculate total classification report
+    conf_matrix_total = confusion_matrix(y_all_last, total_predictions)
+    class_report_total = classification_report(y_all_last, total_predictions, labels=range(num_classes), target_names=target_names, digits=4, zero_division=0)
+
+    print("=== Overall KNN Performance Across All Users ===")
+    print("Confusion Matrix:\n", conf_matrix_total)
+    print("Classification Report:\n", class_report_total)
+
+    combined_conf_matrix = np.zeros((num_classes, num_classes))
+    for i in range(len(conf_matixes)):
+        for j in range(6):
+            for k in range(6):
+                combined_conf_matrix[j, k] += conf_matixes[i][j, k]
+    print("Combined Confusion Matrices from Individual Users:\n", combined_conf_matrix)
+
+
+    return results_per_user, combined_conf_matrix, class_report_total

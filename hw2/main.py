@@ -51,14 +51,25 @@ def main():
     y_test = read_data(y_test_path, x=False)
 
     # create KNN model
-    model = KNN(k=5)
+    model = KNN(k=5, number_of_classes=6)
 
     # fit the model
     
     model.fit(X_train, y_train)
 
     # evaluate the model
-    metric_results, accuracy, cm = model.evaluate(X_test, y_test)
+    metric_results, accuracy, cm, class_report = model.evaluate(
+        X_test, 
+        y_test, 
+        target_names=[
+            "WALKING",
+            "WALKING_UPSTAIRS",
+            "WALKING_DOWNSTAIRS",
+            "SITTING",
+            "STANDING",
+            "LAYING"
+        ]
+    )
     print("Confusion Matrix:\n", cm)
     print(f"Accuracy: {accuracy}")
     print("Detailed Metrics per Class:")
@@ -79,15 +90,23 @@ def main():
     y_all = np.concatenate([y_train, y_test], axis=0)
 
 
-    results_per_user = train_knn_for_each_user(X_all, y_all, subject_all, k=5, num_classes=len(np.unique(y_all)))
+    results_per_user, combined_conf_matrix, class_report_total = train_knn_for_each_user(
+        X_all, 
+        y_all, 
+        subject_all, 
+        target_names= [
+            "WALKING",
+            "WALKING_UPSTAIRS",
+            "WALKING_DOWNSTAIRS",
+            "SITTING",
+            "STANDING",
+            "LAYING"
+        ],
+        k=5, 
+        num_classes=6
+    )
 
-    for uid, rep in results_per_user.items():
-        print(f"\n--- Subject {uid} ---")
-        print(rep)
 
-
-
-   
     num_classes = len(np.unique(y_train))  # genelde 6
     timesteps   = X_train.shape[1]         # D boyutu (örn 561)
     channels    = 1                        # tek kanal gibi davranıyoruz şimdilik
