@@ -4,6 +4,8 @@ import os
 from sources.CNN import (build_har_model, build_har_model_light, compile_model, run_user_specific_models_with_internal_split
                          ,train_model, predict_model,
                          evaluate_classification_metrics)
+from sources.perceptrons import part3_gate_models
+
 
 def read_data(file_path: str, x = True) -> np.ndarray:
     # Placeholder for data reading logic
@@ -195,6 +197,8 @@ def main():
         print(f"\n--- Subject {uid} ---")
         print(rep)
 
+    
+    part3_gate_models() #PART 3
 
 if __name__ == "__main__":
     main()
