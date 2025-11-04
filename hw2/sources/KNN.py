@@ -95,4 +95,48 @@ class KNN:
         metric_results, accuracy = Metrics.calculate_metrics(confusion_mat, self.number_of_classes)
 
         return metric_results, accuracy, confusion_mat
-        
+    
+
+def train_knn_for_each_user(X_all: np.ndarray, y_all: np.ndarray, subject_all: np.ndarray, k: int,num_classes: int):
+    """
+    Train and evaluate KNN model for each user separately.
+
+    Parameters:
+    X_all : np.ndarray, shape (n_samples, n_features)
+        All feature data.
+    y_all : np.ndarray, shape (n_samples,)
+        All labels.
+    subject_all : np.ndarray, shape (n_samples,)
+        Subject identifiers for each sample.
+    k : int
+        Number of neighbors for KNN.
+    num_classes : int
+        Number of unique classes.
+    """
+
+    unique_subjects = np.unique(subject_all)
+    results_per_user = {}
+
+    for subject in unique_subjects:
+        # Get indices for the current subject
+        subject_indices = np.where(subject_all == subject)[0]
+
+        # Split data for the current subject
+        X_subject = X_all[subject_indices]
+        y_subject = y_all[subject_indices]
+
+        # Simple train-test split (e.g., 80-20)
+        split_index = int(0.8 * len(X_subject))
+        X_train_subj, X_test_subj = X_subject[:split_index], X_subject[split_index:]
+        y_train_subj, y_test_subj = y_subject[:split_index], y_subject[split_index:]
+
+        # Create and train KNN model
+        model = KNN(k=k, number_of_classes=num_classes)
+        model.fit(X_train_subj, y_train_subj)
+
+        # Evaluate the model
+        metric_results, accuracy, confusion_mat = model.evaluate(X_test_subj, y_test_subj)
+        results_per_user[subject] = {'accuracy': accuracy, 'metrics': metric_results, 'confusion_matrix': confusion_mat}
+        print(f"Subject {subject} - Accuracy: {accuracy}")
+
+    return results_per_user

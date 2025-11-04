@@ -1,4 +1,4 @@
-from sources.KNN import KNN
+from sources.KNN import KNN, train_knn_for_each_user
 import numpy as np
 import os
 from sources.CNN import (build_har_model, build_har_model_light, compile_model, run_user_specific_models_with_internal_split
@@ -66,6 +66,26 @@ def main():
         print(f"Class {class_label}:")
         for metric_name, value in metrics.items():
             print(f"  {metric_name}: {value}")
+
+    # ------ KNN For Each User ------
+    subject_train_path = os.path.join(DATASET_DIR, "train", "subject_train.txt")
+    subject_test_path  = os.path.join(DATASET_DIR, "test",  "subject_test.txt")
+
+    subject_train = read_data(subject_train_path, x=False)
+    subject_test  = read_data(subject_test_path,  x=False)
+
+    subject_all = np.concatenate([subject_train, subject_test], axis=0)
+    X_all = np.concatenate([X_train, X_test], axis=0)
+    y_all = np.concatenate([y_train, y_test], axis=0)
+
+
+    results_per_user = train_knn_for_each_user(X_all, y_all, subject_all, k=5, num_classes=len(np.unique(y_all)))
+
+    for uid, rep in results_per_user.items():
+        print(f"\n--- Subject {uid} ---")
+        print(rep)
+
+
 
    
     num_classes = len(np.unique(y_train))  # genelde 6
