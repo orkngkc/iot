@@ -2,16 +2,16 @@ import time
 import cv2
 import requests
 
-SERVER_IP = "192.168.1.112"          # <-- kendi server IP'n
-SERVER_URL = f"http://{SERVER_IP}:80/upload_frame"  # veya port 80 ise :80
+SERVER_IP = "192.168.1.112"        
+SERVER_URL = f"http://{SERVER_IP}:80/upload_frame" 
 
 def main():
-    # Kameran varsa:
-    cap = cv2.VideoCapture(0)  # /dev/video0 veya VM içindeki webcam
+   
+    cap = cv2.VideoCapture(0)  
     if not cap.isOpened():
         raise RuntimeError("Camera not found. Check /dev/video0 or VideoCapture source.")
 
-    # İsteğe bağlı: çözünürlük düşür (bandwidth + YOLO hızına iyi gelir)
+    
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
@@ -24,7 +24,7 @@ def main():
             time.sleep(0.1)
             continue
 
-        # JPEG encode
+        
         ok, jpg = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 70])
         if not ok:
             print("JPEG encode failed, skipping frame.")
@@ -54,14 +54,14 @@ def main():
         t1 = time.time()
         rtt_ms = (t1 - t0) * 1000.0
 
-        # basic log
+        
         if infer_ms is not None:
             print(f"People: {people} | server infer: {infer_ms:.1f} ms | RTT: {rtt_ms:.1f} ms")
         else:
             print(f"People: {people} | RTT: {rtt_ms:.1f} ms")
 
-        # çok kasmasın diye ufak delay
-        time.sleep(0.05)  # ~20 FPS civarı
+       
+        time.sleep(0.05)
 
     cap.release()
 

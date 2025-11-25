@@ -8,8 +8,8 @@ import numpy as np
 SERVER_IP = "192.168.1.112"   # <-- server makinenin IP'si
 SERVER_URL = f"http://{SERVER_IP}:80/update_count"
 
-# Tiny / nano model (device tarafında)
-model = YOLO("yolov8n.pt")  # aynı dosyayı VM'e de koyarsın veya indirir
+# Tiny / nano model 
+model = YOLO("yolov8n.pt") 
 
 PERSON_CLASS_ID = 0  # COCO person
 
@@ -26,8 +26,7 @@ def detect_people_local(frame_bgr: np.ndarray) -> int:
     return int((cls == PERSON_CLASS_ID).sum())
 
 def main():
-    # Burada istersen webcam yerine video dosyası da kullanabilirsin:
-    # cap = cv2.VideoCapture("test_video.mp4")
+    
     cap = cv2.VideoCapture(0)
 
     if not cap.isOpened():
@@ -71,7 +70,7 @@ def main():
                 f"server ack: {data.get('status')}"
             )
 
-        # Çok sık POST atıp server'ı boğmamak için:
+        
         time.sleep(0.2)
 
     cap.release()

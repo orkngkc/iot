@@ -7,8 +7,7 @@ app = FastAPI()
 
 class CountUpdate(BaseModel):
     count: int
-    device_time: float | None = None  # optional, istersen cihaz saatini de yollarsın
-
+    device_time: float | None = None  
 # global state
 latest_people_count: int = 0
 latest_update_ts: float = 0.0

@@ -6,18 +6,18 @@ from ultralytics import YOLO
 
 app = FastAPI()
 
-# YOLOv8 nano model (pretrained on COCO)
-model = YOLO("yolov8n.pt")
-PERSON_CLASS_ID = 0  # COCO class "person"
 
-# Global state: latest inference result
+model = YOLO("yolov8n.pt")
+PERSON_CLASS_ID = 0 
+
+
 latest_people_count = 0
 latest_infer_ms = 0.0
 latest_server_time = 0.0
 
 
 def count_persons(frame_bgr: np.ndarray) -> int:
-    """Run YOLOv8 on BGR frame and return number of 'person' detections."""
+    
     results = model(frame_bgr, verbose=False)[0]
 
     if results.boxes is None:
@@ -32,7 +32,7 @@ async def upload_frame(frame: UploadFile = File(...)):
    
     global latest_people_count, latest_infer_ms, latest_server_time
 
-    # basic content-type check (optional but nice)
+    
     if frame.content_type not in ("image/jpeg", "image/jpg", "image/png"):
         raise HTTPException(status_code=400, detail="frame must be JPEG or PNG image")
 
